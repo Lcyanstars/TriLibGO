@@ -31,9 +31,9 @@ jobs:
 
           - name: macOS-ARM64
             os: macos-latest
-            qt_version: '6.7.*'
+            qt_version: 'brew'
             qt_host: mac
-            qt_arch: clang_64
+            qt_arch: arm64
             artifact_name: TriLibGO-1.0.0-macOS-ARM64
             artifact_ext: tar.gz
 
@@ -51,7 +51,14 @@ jobs:
             libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-cursor0 libegl1 libfontconfig1 libfreetype6
 
-      - name: Install Qt6
+      - name: Install Qt6 (macOS via Homebrew)
+        if: matrix.qt_version == 'brew'
+        run: |
+          brew install qt@6
+          echo "QT_PATH=$(brew --prefix qt@6)" >> "$GITHUB_ENV"
+
+      - name: Install Qt6 (Win/Linux)
+        if: matrix.qt_version != 'brew'
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt_version }}
@@ -72,7 +79,13 @@ jobs:
 
       - name: Configure (macOS)
         if: runner.os == 'macOS'
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DTRILIBGO_BUILD_APP=ON -DTRILIBGO_BUILD_TESTS=OFF -DTRILIBGO_ENABLE_ONNXRUNTIME=OFF
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$QT_PATH/lib/cmake" \
+            -DTRILIBGO_BUILD_APP=ON \
+            -DTRILIBGO_BUILD_TESTS=OFF \
+            -DTRILIBGO_ENABLE_ONNXRUNTIME=OFF
 
       - name: Build
         run: cmake --build build --config Release --target trilibgo_app
@@ -132,10 +145,10 @@ jobs:
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
-          app_contents="stage/TriLibGO.app/Contents"
-          mkdir -p "$app_contents/MacOS"
+          app="stage/TriLibGO.app"
+          mkdir -p "$app/Contents/MacOS"
 
-          cat > "$app_contents/Info.plist" << 'PLIST'
+          cat > "$app/Contents/Info.plist" << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
             "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -157,21 +170,12 @@ jobs:
           </plist>
           PLIST
 
-          cp build/trilibgo_app "$app_contents/MacOS"
+          cp build/trilibgo_app "$app/Contents/MacOS"
+          "$QT_PATH/bin/macdeployqt" "$app" -always-overwrite -no-translations -verbose=1
 
-          echo "=== Binary type ==="
-          file "$app_contents/MacOS/trilibgo_app"
-          echo "=== Before macdeployqt ==="
-          ls -la "$app_contents/MacOS/"
-          echo "=== Qt dirs ==="
-          echo "LIBS: $(qmake6 -query QT_INSTALL_LIBS)"
-          echo "PLUGINS: $(qmake6 -query QT_INSTALL_PLUGINS)"
-
-          echo "=== Running macdeployqt ==="
-          macdeployqt "stage/TriLibGO.app" -always-overwrite -no-translations -verbose=2 || macdeployqt6 "stage/TriLibGO.app" -always-overwrite -no-translations -verbose=2 || echo "macdeployqt FAILED"
-
-          echo "=== After macdeployqt ==="
-          find stage/TriLibGO.app -type f -ls
+          echo "=== App bundle ==="
+          find "$app" -type f | head -50
+          du -sh "$app"
 
           tar -czf "${{ matrix.artifact_name }}.${{ matrix.artifact_ext }}" -C stage TriLibGO.app
 
@@ -216,7 +220,7 @@ jobs:
 
             - **Windows**: Windows 10+, x64
             - **Linux**: Ubuntu 22.04+ or equivalent, x64 (Qt 6 libraries bundled)
-            - **macOS**: macOS 12+, Intel x64
+            - **macOS**: macOS 13+, Apple Silicon (ARM64)
 
             ### How to Run
 

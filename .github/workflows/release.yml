@@ -47,9 +47,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libgl1-mesa-dev libxkbcommon-dev libxcb-icccm4 libxcb-image0 \
-            libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
-            libxcb-cursor0 libegl1 libfontconfig1 libfreetype6
+          sudo apt-get install -y -qq libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
+            libxcb-shape0 libxcb-xinerama0 libxcb-cursor0 libxcb-util1 \
+            libegl1 libfontconfig1 libfreetype6
 
       - name: Install Qt6 (macOS via Homebrew)
         if: matrix.qt_version == 'brew'
@@ -150,8 +151,9 @@ jobs:
                       libxcb-keysyms.so.1 libxcb-randr.so.0 libxcb-render-util.so.0 \
                       libxcb-shape.so.0 libxcb-shm.so.0 libxcb-sync.so.1 \
                       libxcb-xfixes.so.0 libxcb-xinerama.so.0 libxcb-xkb.so.1 \
-                      libxcb.so.1 libOpenGL.so.0 libGL.so.1 libEGL.so.1 \
-                      libxkbcommon.so.0 libfontconfig.so.1 libfreetype.so.6; do
+                      libxcb.so.1 libxcb-util.so.1 libxkbcommon.so.0 libxkbcommon-x11.so.0 \
+                      libOpenGL.so.0 libGL.so.1 libEGL.so.1 \
+                      libfontconfig.so.1 libfreetype.so.6; do
             find /usr/lib -name "$extra" -print -quit 2>/dev/null | while read -r f; do
               cp -n "$f" "$staging" 2>/dev/null || true
             done
@@ -201,13 +203,24 @@ jobs:
           QT_PLUG="$(brew --prefix qt@6)/plugins"
           BIN="$app/Contents/MacOS/trilibgo_app"
 
-          # Find all Qt frameworks the binary links, copy them into the bundle
-          linked_fws=$(otool -L "$BIN" | grep -oE '@rpath/Qt[^ ]+' | sed 's|@rpath/\([^.]*\)\.framework.*|\1|' | sort -u)
+          # Extract Qt framework names from binary's linked libraries
+          # Handle both @rpath/ and full-path references (brew Qt uses full paths)
+          linked_fws=$(otool -L "$BIN" | grep -oE 'Qt[A-Za-z]+\.framework' | sed 's/\.framework//' | sort -u || true)
+          echo "Detected frameworks: $linked_fws"
+
+          # Fallback: if detection fails, bundle the known required set
+          if [ -z "$linked_fws" ]; then
+            linked_fws="QtCore QtGui QtWidgets QtDBus QtOpenGL"
+            echo "Detection failed, using fallback: $linked_fws"
+          fi
+
           for fw_name in $linked_fws; do
             fw_src="$QT_LIB/${fw_name}.framework"
-            if [ -d "$fw_src" ] && [ ! -d "$app/Contents/Frameworks/${fw_name}.framework" ]; then
-              echo "Copying framework: $fw_name"
+            if [ -d "$fw_src" ]; then
+              echo "Copying $fw_name.framework"
               cp -R "$fw_src" "$app/Contents/Frameworks"
+            else
+              echo "WARNING: $fw_src not found"
             fi
           done
 
@@ -215,13 +228,15 @@ jobs:
           mkdir -p "$app/Contents/PlugIns/platforms"
           cp "$QT_PLUG/platforms/libqcocoa.dylib" "$app/Contents/PlugIns/platforms" 2>/dev/null || true
 
-          # Rewrite install names: @rpath -> @executable_path/../Frameworks
+          # Rewrite install names to point inside the app bundle
           for fw in "$app/Contents/Frameworks"/*.framework; do
             fw_name=$(basename "$fw" .framework)
-            install_name_tool -change \
-              "@rpath/${fw_name}.framework/Versions/A/${fw_name}" \
-              "@executable_path/../Frameworks/${fw_name}.framework/Versions/A/${fw_name}" \
-              "$BIN" 2>/dev/null || true
+            new_path="@executable_path/../Frameworks/${fw_name}.framework/Versions/A/${fw_name}"
+            # Fix both @rpath and full-path references
+            for pattern in "@rpath/${fw_name}.framework/Versions/A/${fw_name}" \
+                           "${QT_LIB}/${fw_name}.framework/Versions/A/${fw_name}"; do
+              install_name_tool -change "$pattern" "$new_path" "$BIN" 2>/dev/null || true
+            done
           done
 
           echo "=== App size ==="

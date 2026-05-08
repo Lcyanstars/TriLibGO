@@ -15,6 +15,7 @@ jobs:
         include:
           - name: Windows-x64
             os: windows-latest
+            qt_version: '6.5.*'
             qt_host: windows
             qt_arch: win64_msvc2019_64
             artifact_name: TriLibGO-1.0.0-Windows-x64
@@ -22,6 +23,7 @@ jobs:
 
           - name: Linux-x64
             os: ubuntu-latest
+            qt_version: '6.5.*'
             qt_host: linux
             qt_arch: gcc_64
             artifact_name: TriLibGO-1.0.0-Linux-x64
@@ -29,6 +31,7 @@ jobs:
 
           - name: macOS-ARM64
             os: macos-latest
+            qt_version: '6.7.*'
             qt_host: mac
             qt_arch: clang_64
             artifact_name: TriLibGO-1.0.0-macOS-ARM64
@@ -51,7 +54,7 @@ jobs:
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.*'
+          version: ${{ matrix.qt_version }}
           host: ${{ matrix.qt_host }}
           target: desktop
           arch: ${{ matrix.qt_arch }}

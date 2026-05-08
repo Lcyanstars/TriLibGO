@@ -126,10 +126,26 @@ jobs:
           # qt.conf tells Qt where to find plugins relative to the binary
           printf '[Paths]\nPlugins = .\n' > "$staging/qt.conf"
 
-          # Bundle ICU libraries for Unicode text support
-          icu_libs=$(ldd "$staging/trilibgo_app" 2>/dev/null | grep -oP '/\S+libicu\S+' | sort -u || true)
-          for lib in $icu_libs; do
-            cp -n "$lib" "$staging" 2>/dev/null || true
+          # Bundle ALL non-system shared library dependencies from ldd
+          # Filter to libraries outside /lib and /usr/lib that the system may not ship
+          ldd "$staging/trilibgo_app" 2>/dev/null | grep -oP '/\S+\.so\S*' | sort -u | while read -r lib; do
+            case "$lib" in
+              /lib/*|/usr/lib/*|*/libc.so*|*/libm.so*|*/libpthread*|*/libdl.so*|*/librt.so*|*/libstdc++*|*/libgcc_s*)
+                # Standard system libs, skip
+                ;;
+              *)
+                cp -n "$lib" "$staging" 2>/dev/null || true
+                ;;
+            esac
+          done
+
+          # Also bundle Qt6 platform-related deps that ldd might miss (pulled at runtime)
+          for extra in libOpenGL.so.0 libGL.so.1 libEGL.so.1 libxkbcommon.so.0 \
+                      libfontconfig.so.1 libfreetype.so.6 libX11.so.6 libglib-2.0.so.0 \
+                      libgobject-2.0.so.0 libgio-2.0.so.0; do
+            find /usr/lib -name "$extra" -print -quit 2>/dev/null | while read -r f; do
+              cp -n "$f" "$staging" 2>/dev/null || true
+            done
           done
 
           # Create launcher script
@@ -190,7 +206,7 @@ jobs:
           done
           echo "Using macdeployqt: $MACDEPLOYQT"
           if [ -n "$MACDEPLOYQT" ]; then
-            "$MACDEPLOYQT" "$app" -always-overwrite -no-translations -verbose=1 || echo "WARNING: macdeployqt failed (exit $?), shipping bare binary"
+            "$MACDEPLOYQT" "$app" -always-overwrite -no-translations -codesign=- -verbose=1 || echo "WARNING: macdeployqt failed (exit $?), shipping bare binary"
           else
             echo "macdeployqt not found, bundling binary without Qt frameworks"
           fi

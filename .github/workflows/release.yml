@@ -27,11 +27,11 @@ jobs:
             artifact_name: TriLibGO-1.0.0-Linux-x64
             artifact_ext: tar.gz
 
-          - name: macOS-x64
-            os: macos-13
+          - name: macOS-ARM64
+            os: macos-latest
             qt_host: mac
             qt_arch: clang_64
-            artifact_name: TriLibGO-1.0.0-macOS-x64
+            artifact_name: TriLibGO-1.0.0-macOS-ARM64
             artifact_ext: tar.gz
 
     runs-on: ${{ matrix.os }}
@@ -70,7 +70,7 @@ jobs:
 
       - name: Configure (macOS)
         if: runner.os == 'macOS'
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DTRILIBGO_BUILD_APP=ON -DTRILIBGO_BUILD_TESTS=OFF -DTRILIBGO_ENABLE_ONNXRUNTIME=OFF
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DTRILIBGO_BUILD_APP=ON -DTRILIBGO_BUILD_TESTS=OFF -DTRILIBGO_ENABLE_ONNXRUNTIME=OFF
 
       - name: Build
         run: cmake --build build --config Release --target trilibgo_app

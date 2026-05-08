@@ -180,11 +180,17 @@ jobs:
           # Ensure macdeployqt can find Qt plugins
           export QT_PLUGIN_PATH="$QT_PATH/plugins"
 
-          # Find and run macdeployqt (brew Qt6 may name it macdeployqt6)
-          MACDEPLOYQT=$(which macdeployqt6 2>/dev/null || which macdeployqt 2>/dev/null || "$QT_PATH/bin/macdeployqt" || echo "")
+          # Find macdeployqt (brew Qt6 may name it macdeployqt6)
+          MACDEPLOYQT=""
+          for candidate in macdeployqt6 macdeployqt "$QT_PATH/bin/macdeployqt" "$QT_PATH/bin/macdeployqt6"; do
+            if command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; then
+              MACDEPLOYQT="$candidate"
+              break
+            fi
+          done
           echo "Using macdeployqt: $MACDEPLOYQT"
           if [ -n "$MACDEPLOYQT" ]; then
-            "$MACDEPLOYQT" "$app" -always-overwrite -no-translations -verbose=1
+            "$MACDEPLOYQT" "$app" -always-overwrite -no-translations -verbose=1 || echo "WARNING: macdeployqt failed (exit $?), shipping bare binary"
           else
             echo "macdeployqt not found, bundling binary without Qt frameworks"
           fi

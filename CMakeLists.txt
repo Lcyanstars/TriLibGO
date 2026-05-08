@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(TriLibGo LANGUAGES CXX)
+project(TriLibGo VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -67,5 +67,6 @@ if(TRILIBGO_BUILD_APP)
         src/app/replay_compat.cpp
     )
     target_include_directories(trilibgo_app PRIVATE include)
+    target_compile_definitions(trilibgo_app PRIVATE TRILIBGO_VERSION="${PROJECT_VERSION}")
     target_link_libraries(trilibgo_app PRIVATE Qt6::Widgets trilibgo_core trilibgo_ai)
 endif()

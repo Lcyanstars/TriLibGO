@@ -1,14 +1,19 @@
 # TriLibGo
 
-TriLibGo is a Go-like game played on the vertices of a hexagonal board. Interior stones have three liberties, while capture, ko, passing, and Chinese-style area scoring follow standard Go conventions.
+**TriLibGo** is a reinforcement learning research project for **Three-Liberty Go**
+(三气围棋) — an original Go variant played on the vertices of a hexagonal board.
+Interior stones have three liberties instead of four, creating a faster, sharper
+capture dynamic. The project includes a **C++ game engine**, a **Qt desktop
+application** for human play and replay analysis, and a **PyTorch RL training
+pipeline** (AlphaZero-lite with PUCT MCTS) designed for CPU-only experimentation.
 
 ## Project Status
 
-The core game engine (C++, hex-vertex topology, rules, Qt demo app) is functional
-and stable. The Python reinforcement learning pipeline (under `python/rl/`) is an
-**active research experiment** and has not yet achieved strong play. It is
-published for transparency and collaboration; expect rough edges. See
-[docs/design.md](docs/design.md) for architectural rationale and known issues.
+The core game engine and Qt desktop app are functional and stable. The Python RL
+training pipeline is an **active research experiment** and has not yet achieved
+strong play. It is published for transparency and collaboration; expect rough
+edges. See [docs/design.md](docs/design.md) for architectural rationale and known
+issues.
 
 ## Project Layout
 

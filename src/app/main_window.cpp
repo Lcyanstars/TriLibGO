@@ -112,7 +112,7 @@ MainWindow::MainWindow() {
 
     setCentralWidget(central);
     resize(1100, 760);
-    setWindowTitle("TriLibGo Demo");
+    setWindowTitle("TriLibGo " TRILIBGO_VERSION);
 
     connect(board_widget_, &BoardWidget::state_changed, this, &MainWindow::refresh_ui);
     connect(pass_button, &QPushButton::clicked, this, [this]() {

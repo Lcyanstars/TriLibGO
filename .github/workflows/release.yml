@@ -171,11 +171,28 @@ jobs:
           PLIST
 
           cp build/trilibgo_app "$app/Contents/MacOS"
-          "$QT_PATH/bin/macdeployqt" "$app" -always-overwrite -no-translations -verbose=1
 
-          echo "=== App bundle ==="
-          find "$app" -type f | head -50
+          echo "Binary type:"
+          file "$app/Contents/MacOS/trilibgo_app"
+          echo "Binary size:"
+          ls -lh "$app/Contents/MacOS/trilibgo_app"
+
+          # Ensure macdeployqt can find Qt plugins
+          export QT_PLUGIN_PATH="$QT_PATH/plugins"
+
+          # Find and run macdeployqt (brew Qt6 may name it macdeployqt6)
+          MACDEPLOYQT=$(which macdeployqt6 2>/dev/null || which macdeployqt 2>/dev/null || "$QT_PATH/bin/macdeployqt" || echo "")
+          echo "Using macdeployqt: $MACDEPLOYQT"
+          if [ -n "$MACDEPLOYQT" ]; then
+            "$MACDEPLOYQT" "$app" -always-overwrite -no-translations -verbose=1
+          else
+            echo "macdeployqt not found, bundling binary without Qt frameworks"
+          fi
+
+          echo "=== App size after deploy ==="
           du -sh "$app"
+          echo "=== Contents ==="
+          find "$app" -type f -ls | head -50
 
           tar -czf "${{ matrix.artifact_name }}.${{ matrix.artifact_ext }}" -C stage TriLibGO.app
 

@@ -1,0 +1,7 @@
+* text=auto
+*.cmd text eol=crlf
+*.sh text eol=lf
+*.svg binary
+*.png binary
+*.pt binary
+*.onnx binary

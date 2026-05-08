@@ -1,0 +1,62 @@
+{
+  "name": "tiny_cpu_visual_smoke",
+  "seed": 7,
+  "model": {
+    "board_side": 4,
+    "input_history": 2,
+    "channels": 16,
+    "residual_blocks": 1,
+    "policy_head_channels": 8,
+    "value_head_channels": 8
+  },
+  "mcts": {
+    "simulations": 4,
+    "c_puct": 1.5,
+    "root_dirichlet_alpha": 0.2,
+    "root_exploration_fraction": 0.25,
+    "temperature_opening_moves": 6,
+    "temperature": 1.0
+  },
+  "selfplay": {
+    "games_per_iteration": 1,
+    "workers": 1,
+    "max_moves": 48,
+    "replay_window": 512,
+    "iterations": 1
+  },
+  "rules": {
+    "komi": 0.0,
+    "allow_suicide": false,
+    "selfplay_komi": [0.0, 0.5]
+  },
+  "training": {
+    "batch_size": 16,
+    "epochs_per_iteration": 1,
+    "min_steps_per_iteration": 4,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "lr_schedule": "cosine",
+    "lr_warmup_steps": 1,
+    "lr_decay_steps": 4,
+    "lr_min_ratio": 0.2,
+    "checkpoint_dir": "artifacts/visual_smoke/checkpoints",
+    "replay_dir": "artifacts/visual_smoke/replay",
+    "best_dir": "artifacts/visual_smoke/best"
+  },
+  "evaluation": {
+    "games": 2,
+    "promotion_win_rate": 0.5
+  },
+  "export": {
+    "onnx_path": "artifacts/visual_smoke/export/tiny_cpu_visual_smoke.onnx",
+    "opset": 17
+  },
+  "telemetry": {
+    "enabled": true,
+    "save_game_records": true,
+    "top_policy_moves": 4,
+    "selfplay_dir": "artifacts/visual_smoke/selfplay",
+    "report_path": "artifacts/visual_smoke/reports/tiny_cpu_visual_smoke_report.html"
+  }
+}

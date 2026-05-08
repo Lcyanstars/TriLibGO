@@ -1,0 +1,6 @@
+format=trilibgo-record-v1
+side_length=4
+komi=0
+allow_suicide=0
+phase=0
+moves=E11,E12,E13,D14,D15,D16,E15,E14,F13,F12,F11,E13,D13,C16,F13

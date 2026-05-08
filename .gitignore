@@ -1,0 +1,52 @@
+# Build directories
+/build/
+/build-app/
+/build-app-mingw/
+/build-app-mingw-release/
+/cmake-build-debug/
+/build-*/
+
+# Conda environment
+/.conda/
+
+# IDE files
+/.vs/
+/.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+
+# Training artifacts (generated, large)
+/artifacts/smoke/
+/artifacts/stage*/
+/artifacts/parallel_smoke/
+/artifacts/probes/
+/artifacts/visual_smoke/
+/artifacts/test_tmp/
+!/artifacts/logo/
+
+# Self-play trace output (generated)
+/records/play_*.jsonl
+/records/test_*.jsonl
+
+# Internal planning documents (not published)
+/researchPlan.md
+/Step2Plan.md
+/Stage3Plan.md
+/Stage4Plan.md
+/Stage3ClaudeReview.md
+
+# Large binaries
+*.pdf
+
+# OS files
+.DS_Store
+Thumbs.db

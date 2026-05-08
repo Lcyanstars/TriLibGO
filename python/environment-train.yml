@@ -1,0 +1,13 @@
+name: trilibgo-rl
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy>=1.26
+  - pytorch>=2.3
+  - cpuonly
+  - pip
+  - pip:
+      - onnx>=1.16
+      - onnxruntime>=1.18

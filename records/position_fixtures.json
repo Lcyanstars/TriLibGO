@@ -1,0 +1,12 @@
+[
+  {
+    "record": "r1.tgo",
+    "ply": 5,
+    "name": "r1_ply5"
+  },
+  {
+    "record": "r2.tgo",
+    "ply": 10,
+    "name": "r2_ply10"
+  }
+]

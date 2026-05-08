@@ -1,0 +1,16 @@
+{
+  "r1.tgo": {
+    "side_length": 4,
+    "moves": 15,
+    "black": 11.0,
+    "white": 2.0,
+    "value": 1.0
+  },
+  "r2.tgo": {
+    "side_length": 4,
+    "moves": 24,
+    "black": 19.0,
+    "white": 4.0,
+    "value": 1.0
+  }
+}

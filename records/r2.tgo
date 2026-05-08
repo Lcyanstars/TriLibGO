@@ -1,0 +1,7 @@
+format=trilibgo-record-v1
+side_length=4
+komi=0
+allow_suicide=0
+phase=2
+moves=G10,F11,F10,G9,F12,F13,E14,E15,D16,E13,D13,D14,D15,C16,C15,C14,E12,E11,E10,F9,F8,G8,pass,pass
+result=Black wins by 17.000000

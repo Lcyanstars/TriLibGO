@@ -1,0 +1,56 @@
+{
+  "name": "tiny_cpu_baseline",
+  "seed": 7,
+  "model": {
+    "board_side": 4,
+    "input_history": 2,
+    "channels": 64,
+    "residual_blocks": 6,
+    "policy_head_channels": 32,
+    "value_head_channels": 32
+  },
+  "mcts": {
+    "simulations": 96,
+    "c_puct": 1.5,
+    "root_dirichlet_alpha": 0.2,
+    "root_exploration_fraction": 0.25,
+    "temperature_opening_moves": 12,
+    "temperature": 1.0
+  },
+  "selfplay": {
+    "games_per_iteration": 64,
+    "workers": 4,
+    "max_moves": 256,
+    "replay_window": 50000,
+    "iterations": 5
+  },
+  "rules": {
+    "komi": 0.0,
+    "allow_suicide": false,
+    "selfplay_komi": []
+  },
+  "training": {
+    "batch_size": 128,
+    "epochs_per_iteration": 2,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "checkpoint_dir": "artifacts/checkpoints",
+    "replay_dir": "artifacts/replay",
+    "best_dir": "artifacts/best"
+  },
+  "evaluation": {
+    "games": 8,
+    "promotion_win_rate": 0.55
+  },
+  "export": {
+    "onnx_path": "artifacts/export/tiny_cpu_baseline.onnx",
+    "opset": 17
+  },
+  "telemetry": {
+    "enabled": true,
+    "save_game_records": true,
+    "top_policy_moves": 5,
+    "selfplay_dir": "artifacts/selfplay",
+    "report_path": "artifacts/reports/tiny_cpu_baseline_report.html"
+  }
+}

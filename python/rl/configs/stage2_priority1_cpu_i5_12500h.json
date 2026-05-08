@@ -1,0 +1,93 @@
+{
+  "name": "stage2_priority1_cpu_i5_12500h",
+  "seed": 7,
+  "model": {
+    "board_side": 4,
+    "input_history": 4,
+    "channels": 64,
+    "residual_blocks": 6,
+    "policy_head_channels": 32,
+    "value_head_channels": 32
+  },
+  "mcts": {
+    "simulations": 24,
+    "c_puct": 1.5,
+    "selfplay_exploration_scale": 1.35,
+    "selfplay_exploration_decay_iterations": 8,
+    "root_dirichlet_alpha": 0.2,
+    "root_exploration_fraction": 0.25,
+    "pass_prior_scale": 0.3,
+    "consecutive_pass_min_value": 0.0,
+    "consecutive_pass_min_score_margin": 0.0,
+    "temperature_opening_moves": 12,
+    "temperature": 1.0
+  },
+  "selfplay": {
+    "games_per_iteration": 16,
+    "workers": 6,
+    "max_moves": 192,
+    "replay_window": 20000,
+    "iterations": 40,
+    "sampling_final_temperature": 0.2,
+    "sampling_decay_moves": 24,
+    "early_pass_extra_moves": 6,
+    "short_game_turn_threshold": 20,
+    "abnormal_sample_weight": 0.35
+  },
+  "rules": {
+    "komi": 3.0,
+    "allow_suicide": false,
+    "opening_no_pass_moves": 12,
+    "cleanup_dead_stones": true,
+    "auto_adjust_komi": true,
+    "komi_adjust_interval": 8,
+    "komi_adjust_warmup_iterations": 8,
+    "komi_adjust_min_samples": 32,
+    "komi_adjust_max_margin": 3.0,
+    "komi_adjust_alpha": 0.25,
+    "komi_adjust_delta_max": 0.5,
+    "selfplay_komi": []
+  },
+  "training": {
+    "batch_size": 64,
+    "epochs_per_iteration": 2,
+    "steps_per_iteration": 0,
+    "min_steps_per_iteration": 128,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "lr_schedule": "cosine",
+    "lr_warmup_steps": 256,
+    "lr_decay_steps": 4096,
+    "lr_min_ratio": 0.1,
+    "checkpoint_dir": "artifacts/stage2_priority1/checkpoints",
+    "replay_dir": "artifacts/stage2_priority1/replay",
+    "best_dir": "artifacts/stage2_priority1/best"
+  },
+  "evaluation": {
+    "interval": 6,
+    "interval_schedule": [
+      { "until_iteration": 16, "interval": 16 },
+      { "until_iteration": 32, "interval": 8 }
+    ],
+    "games": 6,
+    "simulations": 24,
+    "full_games_every": 0,
+    "full_games": 0,
+    "full_simulations": 0,
+    "promotion_win_rate": 0.5
+  },
+  "export": {
+    "onnx_path": "artifacts/stage2_priority1/export/stage2_priority1_cpu_i5_12500h.onnx",
+    "opset": 17
+  },
+  "telemetry": {
+    "enabled": true,
+    "save_game_records": true,
+    "show_progress": true,
+    "console_log_mode": "summary",
+    "top_policy_moves": 5,
+    "selfplay_dir": "artifacts/stage2_priority1/selfplay",
+    "report_path": "artifacts/stage2_priority1/reports/stage2_priority1_cpu_i5_12500h_report.html"
+  }
+}

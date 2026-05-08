@@ -1,0 +1,56 @@
+{
+  "name": "tiny_cpu_smoke",
+  "seed": 7,
+  "model": {
+    "board_side": 4,
+    "input_history": 2,
+    "channels": 32,
+    "residual_blocks": 2,
+    "policy_head_channels": 16,
+    "value_head_channels": 16
+  },
+  "mcts": {
+    "simulations": 16,
+    "c_puct": 1.5,
+    "root_dirichlet_alpha": 0.2,
+    "root_exploration_fraction": 0.25,
+    "temperature_opening_moves": 8,
+    "temperature": 1.0
+  },
+  "selfplay": {
+    "games_per_iteration": 2,
+    "workers": 1,
+    "max_moves": 96,
+    "replay_window": 2048,
+    "iterations": 1
+  },
+  "rules": {
+    "komi": 0.0,
+    "allow_suicide": false,
+    "selfplay_komi": [0.0, 0.5]
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs_per_iteration": 1,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "checkpoint_dir": "artifacts/smoke/checkpoints",
+    "replay_dir": "artifacts/smoke/replay",
+    "best_dir": "artifacts/smoke/best"
+  },
+  "evaluation": {
+    "games": 2,
+    "promotion_win_rate": 0.5
+  },
+  "export": {
+    "onnx_path": "artifacts/smoke/export/tiny_cpu_smoke.onnx",
+    "opset": 17
+  },
+  "telemetry": {
+    "enabled": true,
+    "save_game_records": true,
+    "top_policy_moves": 4,
+    "selfplay_dir": "artifacts/smoke/selfplay",
+    "report_path": "artifacts/smoke/reports/tiny_cpu_smoke_report.html"
+  }
+}

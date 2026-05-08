@@ -1,0 +1,63 @@
+{
+  "name": "stage1_cpu_i5_12500h",
+  "seed": 7,
+  "model": {
+    "board_side": 4,
+    "input_history": 2,
+    "channels": 64,
+    "residual_blocks": 6,
+    "policy_head_channels": 32,
+    "value_head_channels": 32
+  },
+  "mcts": {
+    "simulations": 24,
+    "c_puct": 1.5,
+    "root_dirichlet_alpha": 0.2,
+    "root_exploration_fraction": 0.25,
+    "temperature_opening_moves": 12,
+    "temperature": 1.0
+  },
+  "selfplay": {
+    "games_per_iteration": 16,
+    "workers": 6,
+    "max_moves": 192,
+    "replay_window": 20000,
+    "iterations": 12
+  },
+  "rules": {
+    "komi": 0.0,
+    "allow_suicide": false,
+    "selfplay_komi": [2.5, 3.0, 3.5]
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs_per_iteration": 2,
+    "steps_per_iteration": 64,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "checkpoint_dir": "artifacts/stage1/checkpoints",
+    "replay_dir": "artifacts/stage1/replay",
+    "best_dir": "artifacts/stage1/best"
+  },
+  "evaluation": {
+    "interval": 4,
+    "games": 5,
+    "simulations": 12,
+    "full_games_every": 0,
+    "full_games": 0,
+    "full_simulations": 0,
+    "promotion_win_rate": 0.5
+  },
+  "export": {
+    "onnx_path": "artifacts/stage1/export/stage1_cpu_i5_12500h.onnx",
+    "opset": 17
+  },
+  "telemetry": {
+    "enabled": true,
+    "save_game_records": true,
+    "show_progress": true,
+    "top_policy_moves": 5,
+    "selfplay_dir": "artifacts/stage1/selfplay",
+    "report_path": "artifacts/stage1/reports/stage1_cpu_i5_12500h_report.html"
+  }
+}

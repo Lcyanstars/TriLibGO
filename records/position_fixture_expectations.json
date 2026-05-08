@@ -1,0 +1,26 @@
+[
+  {
+    "name": "r1_ply5",
+    "record": "r1.tgo",
+    "ply": 5,
+    "to_play": 2,
+    "occupied": 5,
+    "legal_count": 92,
+    "pass_index": 96,
+    "action_size": 97,
+    "legal_prefix": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    "feature_sums": [2.0, 3.0, 91.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+  },
+  {
+    "name": "r2_ply10",
+    "record": "r2.tgo",
+    "ply": 10,
+    "to_play": 1,
+    "occupied": 8,
+    "legal_count": 89,
+    "pass_index": 96,
+    "action_size": 97,
+    "legal_prefix": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    "feature_sums": [5.0, 3.0, 88.0, 96.0, 1.0, 0.0, 0.0, 0.0]
+  }
+]

@@ -126,23 +126,32 @@ jobs:
           # qt.conf tells Qt where to find plugins relative to the binary
           printf '[Paths]\nPlugins = .\n' > "$staging/qt.conf"
 
-          # Bundle ALL non-system shared library dependencies from ldd
-          # Filter to libraries outside /lib and /usr/lib that the system may not ship
-          ldd "$staging/trilibgo_app" 2>/dev/null | grep -oP '/\S+\.so\S*' | sort -u | while read -r lib; do
-            case "$lib" in
-              /lib/*|/usr/lib/*|*/libc.so*|*/libm.so*|*/libpthread*|*/libdl.so*|*/librt.so*|*/libstdc++*|*/libgcc_s*)
-                # Standard system libs, skip
-                ;;
-              *)
-                cp -n "$lib" "$staging" 2>/dev/null || true
-                ;;
-            esac
-          done
+          # Bundle non-standard shared libs needed by binary AND platform plugin
+          bundle_non_std_libs() {
+            local target="$1"
+            local libs
+            libs=$(ldd "$target" 2>/dev/null | grep -oP '/\S+\.so\S*' | sort -u || true)
+            for lib in $libs; do
+              case "$lib" in
+                /lib/*|/usr/lib/*|*/libc.so*|*/libm.so*|*/libpthread*|*/libdl.so*|*/librt.so*|*/libstdc++*|*/libgcc_s*)
+                  ;; # standard libs, skip
+                *)
+                  cp -n "$lib" "$staging" 2>/dev/null || true
+                  ;;
+              esac
+            done
+          }
 
-          # Also bundle Qt6 platform-related deps that ldd might miss (pulled at runtime)
-          for extra in libOpenGL.so.0 libGL.so.1 libEGL.so.1 libxkbcommon.so.0 \
-                      libfontconfig.so.1 libfreetype.so.6 libX11.so.6 libglib-2.0.so.0 \
-                      libgobject-2.0.so.0 libgio-2.0.so.0; do
+          bundle_non_std_libs "$staging/trilibgo_app"
+          bundle_non_std_libs "$staging/platforms/libqxcb.so"
+
+          # Extra deps that dlopen / runtime-load might miss (Qt6 xcb backend requirements)
+          for extra in libxcb-cursor.so.0 libxcb-icccm.so.4 libxcb-image.so.0 \
+                      libxcb-keysyms.so.1 libxcb-randr.so.0 libxcb-render-util.so.0 \
+                      libxcb-shape.so.0 libxcb-shm.so.0 libxcb-sync.so.1 \
+                      libxcb-xfixes.so.0 libxcb-xinerama.so.0 libxcb-xkb.so.1 \
+                      libxcb.so.1 libOpenGL.so.0 libGL.so.1 libEGL.so.1 \
+                      libxkbcommon.so.0 libfontconfig.so.1 libfreetype.so.6; do
             find /usr/lib -name "$extra" -print -quit 2>/dev/null | while read -r f; do
               cp -n "$f" "$staging" 2>/dev/null || true
             done
@@ -162,7 +171,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           app="stage/TriLibGO.app"
-          mkdir -p "$app/Contents/MacOS"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/PlugIns/platforms"
 
           cat > "$app/Contents/Info.plist" << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -188,30 +197,34 @@ jobs:
 
           cp build/trilibgo_app "$app/Contents/MacOS"
 
-          echo "Binary type:"
-          file "$app/Contents/MacOS/trilibgo_app"
-          echo "Binary size:"
-          ls -lh "$app/Contents/MacOS/trilibgo_app"
+          QT_LIB="$(brew --prefix qt@6)/lib"
+          QT_PLUG="$(brew --prefix qt@6)/plugins"
+          BIN="$app/Contents/MacOS/trilibgo_app"
 
-          # Ensure macdeployqt can find Qt plugins
-          export QT_PLUGIN_PATH="$QT_PATH/plugins"
-
-          # Find macdeployqt (brew Qt6 may name it macdeployqt6)
-          MACDEPLOYQT=""
-          for candidate in macdeployqt6 macdeployqt "$QT_PATH/bin/macdeployqt" "$QT_PATH/bin/macdeployqt6"; do
-            if command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; then
-              MACDEPLOYQT="$candidate"
-              break
+          # Find all Qt frameworks the binary links, copy them into the bundle
+          linked_fws=$(otool -L "$BIN" | grep -oE '@rpath/Qt[^ ]+' | sed 's|@rpath/\([^.]*\)\.framework.*|\1|' | sort -u)
+          for fw_name in $linked_fws; do
+            fw_src="$QT_LIB/${fw_name}.framework"
+            if [ -d "$fw_src" ] && [ ! -d "$app/Contents/Frameworks/${fw_name}.framework" ]; then
+              echo "Copying framework: $fw_name"
+              cp -R "$fw_src" "$app/Contents/Frameworks"
             fi
           done
-          echo "Using macdeployqt: $MACDEPLOYQT"
-          if [ -n "$MACDEPLOYQT" ]; then
-            "$MACDEPLOYQT" "$app" -always-overwrite -no-translations -codesign=- -verbose=1 || echo "WARNING: macdeployqt failed (exit $?), shipping bare binary"
-          else
-            echo "macdeployqt not found, bundling binary without Qt frameworks"
-          fi
 
-          echo "=== App size after deploy ==="
+          # Copy platform plugin for macOS GUI
+          mkdir -p "$app/Contents/PlugIns/platforms"
+          cp "$QT_PLUG/platforms/libqcocoa.dylib" "$app/Contents/PlugIns/platforms" 2>/dev/null || true
+
+          # Rewrite install names: @rpath -> @executable_path/../Frameworks
+          for fw in "$app/Contents/Frameworks"/*.framework; do
+            fw_name=$(basename "$fw" .framework)
+            install_name_tool -change \
+              "@rpath/${fw_name}.framework/Versions/A/${fw_name}" \
+              "@executable_path/../Frameworks/${fw_name}.framework/Versions/A/${fw_name}" \
+              "$BIN" 2>/dev/null || true
+          done
+
+          echo "=== App size ==="
           du -sh "$app"
           echo "=== Contents ==="
           find "$app" -type f -ls | head -50

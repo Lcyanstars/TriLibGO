@@ -135,7 +135,6 @@ jobs:
           app_contents="stage/TriLibGO.app/Contents"
           mkdir -p "$app_contents/MacOS"
 
-          # Minimal Info.plist required for a valid app bundle
           cat > "$app_contents/Info.plist" << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
@@ -159,8 +158,21 @@ jobs:
           PLIST
 
           cp build/trilibgo_app "$app_contents/MacOS"
-          macdeployqt "stage/TriLibGO.app" -always-overwrite -no-translations 2>/dev/null || true
-          test -f "$app_contents/MacOS/trilibgo_app" || cp build/trilibgo_app "$app_contents/MacOS"
+
+          echo "=== Binary type ==="
+          file "$app_contents/MacOS/trilibgo_app"
+          echo "=== Before macdeployqt ==="
+          ls -la "$app_contents/MacOS/"
+          echo "=== Qt dirs ==="
+          echo "LIBS: $(qmake6 -query QT_INSTALL_LIBS)"
+          echo "PLUGINS: $(qmake6 -query QT_INSTALL_PLUGINS)"
+
+          echo "=== Running macdeployqt ==="
+          macdeployqt "stage/TriLibGO.app" -always-overwrite -no-translations -verbose=2 || macdeployqt6 "stage/TriLibGO.app" -always-overwrite -no-translations -verbose=2 || echo "macdeployqt FAILED"
+
+          echo "=== After macdeployqt ==="
+          find stage/TriLibGO.app -type f -ls
+
           tar -czf "${{ matrix.artifact_name }}.${{ matrix.artifact_ext }}" -C stage TriLibGO.app
 
       - name: Upload artifact

@@ -16,7 +16,7 @@ jobs:
           - name: Windows-x64
             os: windows-latest
             qt_host: windows
-            qt_arch: win64_msvc2022_64
+            qt_arch: win64_msvc2019_64
             artifact_name: TriLibGO-1.0.0-Windows-x64
             artifact_ext: zip
 

@@ -51,12 +51,11 @@ jobs:
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.5.*'
+          version: '6.7.*'
           host: ${{ matrix.qt_host }}
           target: desktop
           arch: ${{ matrix.qt_arch }}
           cache: true
-          setup-python: false
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'

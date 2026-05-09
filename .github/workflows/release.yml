@@ -199,73 +199,97 @@ jobs:
 
           cp build/trilibgo_app "$app/Contents/MacOS"
 
-          QT_PREFIX="$(brew --prefix qt@6)"
+          # brew qt@6 installs a meta-package; actual frameworks live under qtbase
+          QTBASE="$(brew --prefix qtbase)"
           BIN="$app/Contents/MacOS/trilibgo_app"
           FW="$app/Contents/Frameworks"
 
           echo "=== Binary deps ==="
           otool -L "$BIN"
-          echo "=== Qt prefix contents (lib) ==="
-          ls "$QT_PREFIX/lib" | head -30
+          echo "=== Qtbase lib contents ==="
+          ls "$QTBASE/lib" | head -30
 
-          # Copy all Qt .dylib files that the binary references (brew Qt uses flat dylibs)
+          # Detect which Qt framework dirs the binary references
+          # otool lines look like: /opt/homebrew/opt/qtbase/lib/QtCore.framework/Versions/A/QtCore
+          linked_fws=$(otool -L "$BIN" | grep -oE '/opt/[^ ]*\.framework' | sort -u || true)
+          echo "Detected framework dirs: $linked_fws"
+
           mkdir -p "$FW"
-          for dylib in "$QT_PREFIX"/lib/libQt6*.dylib; do
-            [ -f "$dylib" ] || continue
-            name=$(basename "$dylib")
-            if otool -L "$BIN" | grep -q "$name"; then
-              echo "Copying $name"
-              cp -n "$dylib" "$FW"
-            fi
+          for fw_dir in $linked_fws; do
+            [ -d "$fw_dir" ] || continue
+            fw_name=$(basename "$fw_dir" .framework)
+            echo "Copying ${fw_name}.framework"
+            cp -R "$fw_dir" "$FW"
           done
 
           # Copy platform plugin
           mkdir -p "$app/Contents/PlugIns/platforms"
-          echo "=== Qt plugins dir ==="
-          ls "$QT_PREFIX/plugins/platforms/" 2>/dev/null || echo "(no platforms dir)"
-          cp "$QT_PREFIX/plugins/platforms/libqcocoa.dylib" "$app/Contents/PlugIns/platforms"
+          echo "=== Qtbase plugins dir ==="
+          ls "$QTBASE/plugins/platforms/" 2>/dev/null || echo "(no platforms dir)"
+          if [ -f "$QTBASE/plugins/platforms/libqcocoa.dylib" ]; then
+            cp "$QTBASE/plugins/platforms/libqcocoa.dylib" "$app/Contents/PlugIns/platforms"
+          else
+            echo "WARNING: libqcocoa.dylib not found at primary path, searching..."
+            find "$QTBASE" "$(brew --prefix qt)" -name "libqcocoa.dylib" -exec cp {} "$app/Contents/PlugIns/platforms" \; 2>/dev/null || echo "WARNING: Could not find libqcocoa.dylib"
+          fi
+          echo "=== Plugins copied ==="
+          ls "$app/Contents/PlugIns/platforms/" 2>/dev/null || echo "(empty)"
 
-          # Helper: find old install name for a given dylib basename (handles full paths and @rpath)
+          # Helper: find old install name matching a framework path suffix
           find_old_path() {
-            local target="$1" dylib_name="$2"
-            local old
-            old=$(otool -L "$target" | grep -oE "/[^ ]*${dylib_name}" | head -1)
-            if [ -n "$old" ]; then
-              echo "$old"
-            else
-              otool -L "$target" | grep -oE "@rpath/${dylib_name}" | head -1
-            fi
+            local target="$1" fw_suffix="$2"
+            otool -L "$target" | grep -oE "/opt/[^ ]*${fw_suffix}" | head -1
           }
 
-          # Rewrite binary's install names from brew paths to bundled paths
-          for dylib in "$FW"/*.dylib; do
-            [ -f "$dylib" ] || continue
-            name=$(basename "$dylib")
-            old_path=$(find_old_path "$BIN" "$name")
-            if [ -n "$old_path" ]; then
-              echo "Rewriting binary ref $name: $old_path -> @executable_path/../Frameworks/$name"
-              install_name_tool -change "$old_path" "@executable_path/../Frameworks/$name" "$BIN"
+          # Rewrite binary's framework references
+          chmod u+w "$BIN"
+          for fw in "$FW"/*.framework; do
+            [ -d "$fw" ] || continue
+            fw_name=$(basename "$fw" .framework)
+            old_path=$(find_old_path "$BIN" "${fw_name}.framework/Versions/A/${fw_name}")
+            new_path="@executable_path/../Frameworks/${fw_name}.framework/Versions/A/${fw_name}"
+            if [ -n "$old_path" ] && [ "$old_path" != "$new_path" ]; then
+              echo "Rewriting binary ref $fw_name: $old_path -> $new_path"
+              install_name_tool -change "$old_path" "$new_path" "$BIN" || echo "WARNING: failed to rewrite $fw_name in binary"
             fi
           done
 
-          # Rewrite dylib-to-dylib references and each dylib's own install name
-          for dylib in "$FW"/*.dylib; do
-            [ -f "$dylib" ] || continue
-            name=$(basename "$dylib")
-            # Fix the dylib's own install name
-            install_name_tool -id "@executable_path/../Frameworks/$name" "$dylib"
-            # Fix references to other bundled dylibs
-            for other in "$FW"/*.dylib; do
-              [ -f "$other" ] || continue
-              other_name=$(basename "$other")
-              [ "$name" = "$other_name" ] && continue
-              old_path=$(find_old_path "$dylib" "$other_name")
-              if [ -n "$old_path" ] && [ "$old_path" != "@executable_path/../Frameworks/$other_name" ]; then
-                echo "Rewriting $name -> $other_name: $old_path -> @executable_path/../Frameworks/$other_name"
-                install_name_tool -change "$old_path" "@executable_path/../Frameworks/$other_name" "$dylib"
+          # Rewrite framework-to-framework references + each framework's own id
+          for fw in "$FW"/*.framework; do
+            [ -d "$fw" ] || continue
+            fw_name=$(basename "$fw" .framework)
+            fw_bin="$fw/Versions/A/$fw_name"
+            [ -f "$fw_bin" ] || continue
+            chmod u+w "$fw_bin"
+            install_name_tool -id "@executable_path/../Frameworks/${fw_name}.framework/Versions/A/${fw_name}" "$fw_bin" || echo "WARNING: failed to set id for $fw_name"
+            for other in "$FW"/*.framework; do
+              [ -d "$other" ] || continue
+              other_name=$(basename "$other" .framework)
+              [ "$fw_name" = "$other_name" ] && continue
+              old_path=$(find_old_path "$fw_bin" "${other_name}.framework/Versions/A/${other_name}")
+              new_path="@executable_path/../Frameworks/${other_name}.framework/Versions/A/${other_name}"
+              if [ -n "$old_path" ] && [ "$old_path" != "$new_path" ]; then
+                echo "Rewriting $fw_name -> $other_name: $old_path -> $new_path"
+                install_name_tool -change "$old_path" "$new_path" "$fw_bin" || echo "WARNING: failed to rewrite $other_name in $fw_name"
               fi
             done
           done
+
+          # Rewrite platform plugin references to bundled frameworks
+          PLUG="$app/Contents/PlugIns/platforms/libqcocoa.dylib"
+          if [ -f "$PLUG" ]; then
+            chmod u+w "$PLUG"
+            for fw in "$FW"/*.framework; do
+              [ -d "$fw" ] || continue
+              fw_name=$(basename "$fw" .framework)
+              old_path=$(find_old_path "$PLUG" "${fw_name}.framework/Versions/A/${fw_name}")
+              new_path="@executable_path/../Frameworks/${fw_name}.framework/Versions/A/${fw_name}"
+              if [ -n "$old_path" ] && [ "$old_path" != "$new_path" ]; then
+                echo "Rewriting plugin ref $fw_name: $old_path -> $new_path"
+                install_name_tool -change "$old_path" "$new_path" "$PLUG" || echo "WARNING: failed to rewrite $fw_name in plugin"
+              fi
+            done
+          fi
 
           echo "=== Final state ==="
           du -sh "$app"

@@ -22,7 +22,7 @@ jobs:
             artifact_ext: zip
 
           - name: Linux-x64
-            os: ubuntu-latest
+            os: ubuntu-22.04
             qt_version: '6.5.*'
             qt_host: linux
             qt_arch: gcc_64

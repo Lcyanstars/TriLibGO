@@ -224,13 +224,24 @@ jobs:
 
           # Copy platform plugin
           mkdir -p "$app/Contents/PlugIns/platforms"
-          echo "=== Qtbase plugins dir ==="
-          ls "$QTBASE/plugins/platforms/" 2>/dev/null || echo "(no platforms dir)"
-          if [ -f "$QTBASE/plugins/platforms/libqcocoa.dylib" ]; then
-            cp "$QTBASE/plugins/platforms/libqcocoa.dylib" "$app/Contents/PlugIns/platforms"
+          echo "=== Looking for libqcocoa.dylib ==="
+          # Search broadly — brew qtbase may place plugins in various locations
+          PLUG_SRC=""
+          for candidate in \
+            "$QTBASE/plugins/platforms/libqcocoa.dylib" \
+            "$QTBASE/share/qt/plugins/platforms/libqcocoa.dylib" \
+            "/opt/homebrew/opt/qt/plugins/platforms/libqcocoa.dylib"; do
+            if [ -f "$candidate" ]; then PLUG_SRC="$candidate"; echo "Found at: $PLUG_SRC"; break; fi
+          done
+          if [ -z "$PLUG_SRC" ]; then
+            echo "Searching /opt/homebrew for libqcocoa.dylib..."
+            PLUG_SRC=$(find /opt/homebrew -name "libqcocoa.dylib" -not -path "*/stage/*" 2>/dev/null | head -1)
+          fi
+          if [ -n "$PLUG_SRC" ] && [ -f "$PLUG_SRC" ]; then
+            cp "$PLUG_SRC" "$app/Contents/PlugIns/platforms"
+            echo "Copied plugin from $PLUG_SRC"
           else
-            echo "WARNING: libqcocoa.dylib not found at primary path, searching..."
-            find "$QTBASE" "$(brew --prefix qt)" -name "libqcocoa.dylib" -exec cp {} "$app/Contents/PlugIns/platforms" \; 2>/dev/null || echo "WARNING: Could not find libqcocoa.dylib"
+            echo "WARNING: Could not find libqcocoa.dylib anywhere"
           fi
           echo "=== Plugins copied ==="
           ls "$app/Contents/PlugIns/platforms/" 2>/dev/null || echo "(empty)"
